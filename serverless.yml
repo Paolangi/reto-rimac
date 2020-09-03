@@ -1,0 +1,62 @@
+service: reto-rimac-aws
+
+custom:
+  tableName: 'table-${self:provider.stage}'
+
+
+plugins:
+  - serverless-offline 
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: api
+  iamRoleStatements:
+    - Effect: Allow
+      Action: 
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["UsersDynamoDBTablePersona","Arn"]}
+  
+  environment:
+    PERSONA_TABLE: '${self:custom.tableName}-persona'
+
+functions:
+  obtener:
+    handler: obtener.handler
+    events:
+      - http: get {proxy+}
+
+  guardar:  
+    handler: guardar.handler
+    events:
+      - http:
+          path: /savepersonas
+          method: post
+
+resources:
+  Resources:
+    
+    UsersDynamoDBTablePersona:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: personaId
+            AttributeType: S
+
+        KeySchema:
+          -
+            AttributeName: personaId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: '${self:custom.tableName}-persona'
+
+    
